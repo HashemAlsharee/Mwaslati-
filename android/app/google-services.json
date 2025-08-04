@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1051040199369",
+    "project_id": "yemenbus-2c9e3",
+    "storage_bucket": "yemenbus-2c9e3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1051040199369:android:31bee951b6dd536bb35318",
+        "android_client_info": {
+          "package_name": "com.hashem.yemenbus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1Rx7qJcw0_jWH0p5rVP6mfNmCjjWIClY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
