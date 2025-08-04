@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'dart:math';
 import 'firestore_service.dart';
 import 'maps_service.dart';
+import 'logger_service.dart';
 
 class RouteResult {
   final String routeId;
@@ -134,7 +135,7 @@ class RouteService {
 
       return nearbyBusLines;
     } catch (e) {
-      print('Error finding nearby bus lines: $e');
+      LoggerService.error('Error finding nearby bus lines', e);
       return [];
     }
   }
@@ -377,7 +378,7 @@ class RouteService {
         );
       }
     } catch (e) {
-      print('Error planning route: $e');
+      LoggerService.error('Error planning route', e);
       return RouteResult(
         routeId: 'error',
         segments: [],
@@ -432,9 +433,9 @@ class RouteService {
   static Future<RouteResult> _findTransferRoute(
       List<BusLine> startLines, List<BusLine> endLines, LatLng startLocation, LatLng endLocation) async {
     
-    print('🔍 Starting transfer route search...');
-    print('📍 Start lines found: ${startLines.length}');
-    print('🎯 End lines found: ${endLines.length}');
+    LoggerService.debug('Starting transfer route search...');
+    LoggerService.debug('Start lines found: ${startLines.length}');
+    LoggerService.debug('End lines found: ${endLines.length}');
     
     // Get all bus lines to find potential transfer points
     QuerySnapshot snapshot = await _firestore
@@ -443,7 +444,7 @@ class RouteService {
         .get();
 
     List<BusLine> allBusLines = snapshot.docs.map((doc) => BusLine.fromFirestore(doc)).toList();
-    print('🚌 Total active bus lines: ${allBusLines.length}');
+    LoggerService.debug('Total active bus lines: ${allBusLines.length}');
     
     // Find all possible routes with up to 2 transfers (3 segments max)
     List<RouteCandidate> possibleRoutes = [];
@@ -453,24 +454,24 @@ class RouteService {
       for (var endLine in endLines) {
         if (startLine.lineId == endLine.lineId) continue; // Skip if same line
         
-        print('🔄 Checking transfer from ${startLine.name} to ${endLine.name}');
+        LoggerService.debug('Checking transfer from ${startLine.name} to ${endLine.name}');
         
         // Find direct transfers between start and end lines
         List<TransferPoint> directTransfers = _findTransferPoints(startLine, endLine);
-        print('📍 Direct transfer points found: ${directTransfers.length}');
+        LoggerService.debug('Direct transfer points found: ${directTransfers.length}');
         
         for (var transfer in directTransfers) {
           RouteCandidate? route = _createTransferRoute(
             startLine, endLine, startLocation, endLocation, transfer);
           if (route != null) {
             possibleRoutes.add(route);
-            print('✅ Direct transfer route created');
+            LoggerService.debug('Direct transfer route created');
           }
         }
         
         // If no direct transfer, try to find routes with one intermediate line
         if (directTransfers.isEmpty) {
-          print('🔍 No direct transfer, searching for intermediate routes...');
+          LoggerService.debug('No direct transfer, searching for intermediate routes...');
           int intermediateRoutesFound = 0;
           
           for (var intermediateLine in allBusLines) {
@@ -486,7 +487,7 @@ class RouteService {
             
             // If both transfers exist, create a two-transfer route
             if (transfers1.isNotEmpty && transfers2.isNotEmpty) {
-              print('🔄 Found intermediate route via ${intermediateLine.name}');
+              LoggerService.debug('Found intermediate route via ${intermediateLine.name}');
               // Use the first transfer point from each set
               RouteCandidate? route = _createTwoTransferRoute(
                 startLine, intermediateLine, endLine, 
@@ -498,12 +499,12 @@ class RouteService {
               }
             }
           }
-          print('✅ Intermediate routes found: $intermediateRoutesFound');
+          LoggerService.debug('Intermediate routes found: $intermediateRoutesFound');
         }
       }
     }
     
-    print('📊 Total possible routes found: ${possibleRoutes.length}');
+    LoggerService.debug('Total possible routes found: ${possibleRoutes.length}');
     
     // Sort routes by total distance and number of transfers
     possibleRoutes.sort((a, b) {
@@ -519,7 +520,7 @@ class RouteService {
     // Return the best route if found
     if (possibleRoutes.isNotEmpty) {
       RouteCandidate bestRoute = possibleRoutes.first;
-      print('🏆 Best route selected with ${bestRoute.segments.length} segments');
+      LoggerService.debug('Best route selected with ${bestRoute.segments.length} segments');
       
       // Calculate total walking distance at transfer points
       double totalWalkingDistance = 0.0;
@@ -541,7 +542,7 @@ class RouteService {
           ? 'تم العثور على مسار مع ${bestRoute.segments.length - 1} تحويلة. مسافة المشي الإجمالية: ${MapsService.formatDistance(totalWalkingDistance)}'
           : 'تم العثور على مسار مباشر';
       
-      print('🎉 Transfer route successfully created!');
+      LoggerService.debug('Transfer route successfully created!');
       return RouteResult(
         routeId: routeId,
         segments: bestRoute.segments,
@@ -551,7 +552,7 @@ class RouteService {
         message: message,
       );
     } else {
-      print('❌ No transfer routes found');
+      LoggerService.debug('No transfer routes found');
       return RouteResult(
         routeId: 'no_transfer_route',
         segments: [],
@@ -571,8 +572,8 @@ class RouteService {
     // Use a sampling approach to improve performance
     int skipRate = max(1, line1.polyline.length ~/ 20); // Check every 20th point or every point if polyline is short
     
-    print('🔍 Checking ${line1.polyline.length} points on ${line1.name} against ${line2.polyline.length} points on ${line2.name}');
-    print('📏 Using skip rate: $skipRate, threshold: ${_transferThresholdMeters}m');
+    LoggerService.debug('Checking ${line1.polyline.length} points on ${line1.name} against ${line2.polyline.length} points on ${line2.name}');
+    LoggerService.debug('Using skip rate: $skipRate, threshold: ${_transferThresholdMeters}m');
     
     for (int i = 0; i < line1.polyline.length; i += skipRate) {
       LatLng point1 = line1.polyline[i];
@@ -641,9 +642,9 @@ class RouteService {
       transferPoints = transferPoints.sublist(0, 3);
     }
     
-    print('📍 Found ${transferPoints.length} transfer points between ${line1.name} and ${line2.name}');
+    LoggerService.debug('Found ${transferPoints.length} transfer points between ${line1.name} and ${line2.name}');
     if (transferPoints.isNotEmpty) {
-      print('   Closest transfer: ${transferPoints.first.transferDistanceMeters.toStringAsFixed(1)}m');
+      LoggerService.debug('Closest transfer: ${transferPoints.first.transferDistanceMeters.toStringAsFixed(1)}m');
     }
     
     return transferPoints;
@@ -707,7 +708,7 @@ class RouteService {
         totalDistance: totalDistance,
       );
     } catch (e) {
-      print('Error creating transfer route: $e');
+      LoggerService.error('Error creating transfer route', e);
       return null;
     }
   }
@@ -791,7 +792,7 @@ class RouteService {
         totalDistance: totalDistance,
       );
     } catch (e) {
-      print('Error creating two-transfer route: $e');
+      LoggerService.error('Error creating two-transfer route', e);
       return null;
     }
   }
