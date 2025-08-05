@@ -6,38 +6,48 @@ import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'core/services/config_service.dart';
-import 'core/services/logger_service.dart';
 // If you add a custom font, import it here (e.g., Cairo or Tajawal)
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Load environment variables
+  // Load environment variables first
   try {
     await dotenv.load(fileName: ".env");
-    ConfigService.validateConfig();
-    LoggerService.info('Environment variables loaded successfully');
+    print('✅ Environment variables loaded successfully');
+    
+    // Verify the API key was loaded
+    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'];
+    if (apiKey != null && apiKey.isNotEmpty) {
+      print('🔑 API Key loaded: ${apiKey.substring(0, 10)}...');
+    } else {
+      throw Exception('GOOGLE_MAPS_API_KEY is empty or missing in .env file');
+    }
   } catch (e) {
-    LoggerService.error('Failed to load environment variables', e);
-    // Continue with app initialization even if env loading fails
+    print('❌ CRITICAL ERROR: Could not load .env file: $e');
+    print('''
+🔧 Troubleshooting Steps:
+1. Check if .env file exists in project root
+2. Verify .env file contains: GOOGLE_MAPS_API_KEY=your_api_key_here
+3. Ensure .env is included in pubspec.yaml assets section
+4. Run: flutter clean && flutter pub get
+5. Restart the app
+
+The app will now throw an error instead of using outdated fallback keys.
+''');
+    // Don't continue - let the error propagate
+    rethrow;
   }
   
-  // Initialize Firebase
+  // Initialize Firebase after environment variables
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    LoggerService.info('Firebase initialized successfully');
   } catch (e) {
-    LoggerService.error('Firebase initialization failed', e);
+    print('⚠️ Firebase initialization failed: $e');
     // Still run the app even if Firebase fails
   }
-
-  // Set up global error handling
-  FlutterError.onError = (FlutterErrorDetails details) {
-    LoggerService.critical('Uncaught Flutter error', details.exception, details.stack);
-  };
 
   runApp(
     ChangeNotifierProvider(
@@ -50,7 +60,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  @override
+    @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {

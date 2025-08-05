@@ -192,4 +192,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
+class _PlaceholderPage extends StatelessWidget {
+  final String title;
+  const _PlaceholderPage({required this.title});
 
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(title),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 1,
+        ),
+        body: Center(
+          child: Text(
+            'صفحة $title',
+            style: const TextStyle(fontSize: 22, color: Colors.grey),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
-import '../services/logger_service.dart';
 import '../services/maps_service.dart';
 
 class BusMapWidget extends StatefulWidget {
@@ -106,11 +105,11 @@ class _BusMapWidgetState extends State<BusMapWidget> {
       );
     }
 
-    // Debug logging for polylines
-    LoggerService.debug('BusMapWidget polylines count: ${widget.polylines?.length ?? 0}');
+    // Debug print for polylines
+    print('BusMapWidget polylines count: ${widget.polylines?.length ?? 0}');
     if (widget.polylines != null) {
       for (final poly in widget.polylines!) {
-        LoggerService.debug('Polyline: id=${poly.polylineId.value}, points=${poly.points.length}');
+        print('Polyline: id=${poly.polylineId.value}, points=${poly.points.length}');
       }
     }
 

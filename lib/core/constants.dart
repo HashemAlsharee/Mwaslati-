@@ -1,6 +1,8 @@
+import 'services/api_key_service.dart';
+
 class AppConstants {
   // Google Maps API Key
-  static const String googleMapsApiKey = 'AIzaSyCxy0b-BsXcBJNoZ7xjERUXar-OIWlNWZA';
+  static String get googleMapsApiKey => ApiKeyService.googleMapsApiKey;
   
   // Firebase Configuration
   static const String firebaseProjectId = 'yemenbus-2c9e3';

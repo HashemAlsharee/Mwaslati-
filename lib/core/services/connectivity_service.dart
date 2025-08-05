@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'logger_service.dart';
 
 class ConnectivityService {
   static final ConnectivityService _instance = ConnectivityService._internal();
@@ -20,7 +19,7 @@ class ConnectivityService {
       _connectivityController.add(isConnected);
       return isConnected;
     } catch (e) {
-      LoggerService.error('Error checking connectivity', e);
+      print('Error checking connectivity: $e');
       _connectivityController.add(false);
       return false;
     }

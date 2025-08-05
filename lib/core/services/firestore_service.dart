@@ -3,7 +3,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'maps_service.dart';
-import 'logger_service.dart';
 
 class BusLine {
   final String lineId;
@@ -84,15 +83,15 @@ class FirestoreService {
     try {
       // First check if Firebase is initialized
       if (Firebase.apps.isEmpty) {
-        LoggerService.info('Firebase not initialized, attempting to initialize...');
+        print('Firebase not initialized, attempting to initialize...');
         await Firebase.initializeApp();
       }
       
       await _firestore.collection('test').doc('test').get();
-      LoggerService.info('Firebase connection successful');
+      print('Firebase connection successful');
       return true;
     } catch (e) {
-      LoggerService.error('Firebase connection failed', e);
+      print('Firebase connection failed: $e');
       return false;
     }
   }
@@ -615,9 +614,9 @@ const LatLng(15.32754, 44.19911),
 
       await batch.commit();
       await _firestore.collection(_collectionName).doc('SNA1').delete();
-      LoggerService.info('Sana\'a bus data added successfully');
+      print('Sana\'a bus data added successfully');
     } catch (e) {
-      LoggerService.error('Error adding Sana\'a bus data', e);
+      print('Error adding Sana\'a bus data: $e');
     }
   }
 
@@ -633,7 +632,7 @@ const LatLng(15.32754, 44.19911),
           .map((doc) => BusLine.fromFirestore(doc))
           .toList();
     } catch (e) {
-      LoggerService.error('Error fetching bus lines', e);
+      print('Error fetching bus lines: $e');
       return [];
     }
   }
@@ -652,7 +651,7 @@ const LatLng(15.32754, 44.19911),
 
       return nearbyBusLines;
     } catch (e) {
-      LoggerService.error('Error fetching nearby bus lines', e);
+      print('Error fetching nearby bus lines: $e');
       return [];
     }
   }

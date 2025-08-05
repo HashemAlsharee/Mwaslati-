@@ -4,10 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../constants.dart';
 
 class MapsService {
-  static const String _apiKey = AppConstants.googleMapsApiKey;
-  
   /// Get the Google Maps API key
-  static String get apiKey => _apiKey;
+  static String get apiKey => AppConstants.googleMapsApiKey;
   
   /// Get current user location
   static Future<Position?> getCurrentLocation() async {

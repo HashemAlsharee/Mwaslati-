@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/logger_service.dart';
 
 class ThemeProvider with ChangeNotifier {
   static const String _themeKey = 'theme_mode';
@@ -26,7 +25,7 @@ class ThemeProvider with ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      LoggerService.error('Error loading theme', e);
+      debugPrint('Error loading theme: $e');
     }
   }
   
@@ -36,7 +35,7 @@ class ThemeProvider with ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_themeKey, _themeMode == ThemeMode.dark ? 'dark' : 'light');
     } catch (e) {
-      LoggerService.error('Error saving theme', e);
+      debugPrint('Error saving theme: $e');
     }
   }
   

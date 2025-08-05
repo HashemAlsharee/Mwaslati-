@@ -4,7 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/widgets/map_widget.dart';
 import '../../core/services/maps_service.dart';
 import '../../core/services/firestore_service.dart';
-import '../../core/services/logger_service.dart';
+import '../../core/constants.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -115,11 +115,11 @@ class HomeScreenState extends State<HomeScreen> {
       });
 
     } catch (e) {
-      LoggerService.error('Error in _initializeLocationAndData', e);
+      print('Error in _initializeLocationAndData: $e');
       if (!mounted || _isDisposed) return;
       setState(() {
         isLoading = false;
-        errorMessage = "حدث خطأ أثناء تحميل البيانات. يرجى المحاولة مرة أخرى.";
+        errorMessage = "حدث خطأ أثناء تحميل البيانات: $e";
       });
     }
   }
@@ -238,9 +238,10 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<List<LatLng>> _getDirectionsPolyline(LatLng origin, LatLng destination) async {
-    const apiKey = 'AIzaSyARykeVy-ehtI3pCzOm4tOFHlgSvbHXJBI'; // TODO: Replace with your real API key
-    LoggerService.debug('Origin: ${origin.latitude}, ${origin.longitude}');
-    LoggerService.debug('Destination: ${destination.latitude}, ${destination.longitude}');
+    final apiKey = AppConstants.googleMapsApiKey;
+    print('🔑 Using API Key: ${apiKey.substring(0, 10)}...');
+    print('Origin: ${origin.latitude}, ${origin.longitude}');
+    print('Destination: ${destination.latitude}, ${destination.longitude}');
     String mode = 'driving';
     var url =
         'https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&mode=$mode&key=$apiKey';
@@ -250,10 +251,10 @@ class HomeScreenState extends State<HomeScreen> {
         final data = json.decode(response.body);
         if (data['routes'] != null && data['routes'].isNotEmpty) {
           final points = data['routes'][0]['overview_polyline']['points'];
-          LoggerService.debug('Raw polyline points string: $points');
+          print('Raw polyline points string: $points');
           return _decodePolyline(points);
         } else {
-          LoggerService.info('No routes found for driving. Trying walking mode...');
+          print('No routes found for driving. Trying walking mode...');
           // Try walking mode as fallback
           mode = 'walking';
           url =
@@ -263,24 +264,28 @@ class HomeScreenState extends State<HomeScreen> {
             final data = json.decode(response.body);
             if (data['routes'] != null && data['routes'].isNotEmpty) {
               final points = data['routes'][0]['overview_polyline']['points'];
-              LoggerService.debug('Raw polyline points string: $points');
+              print('Raw polyline points string: $points');
               return _decodePolyline(points);
             } else {
-              LoggerService.warning('No routes found for walking either');
+              print('No routes found for walking either. Full API response:');
+              print(response.body);
               throw Exception('No routes found (driving or walking)');
             }
           } else {
-            LoggerService.error('Failed to fetch directions (walking)', null);
+            print('Failed to fetch directions (walking). Response:');
+            print(response.body);
             throw Exception('Failed to fetch directions (walking)');
           }
         }
       } else {
-        LoggerService.error('Failed to fetch directions (driving)', null);
+        print('Failed to fetch directions (driving). Response:');
+        print(response.body);
         throw Exception('Failed to fetch directions (driving)');
       }
     } catch (e) {
-      LoggerService.error('HTTP request to Directions API failed', e);
-      throw Exception('HTTP request to Directions API failed');
+      print('❌ HTTP request to Directions API failed: $e');
+      print('🔗 URL was: $url');
+      throw Exception('HTTP request to Directions API failed: $e');
     }
   }
 
@@ -331,7 +336,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<LatLng> _snapToRoad(LatLng point) async {
-    const apiKey = 'AIzaSyARykeVy-ehtI3pCzOm4tOFHlgSvbHXJBI'; // Use your Google API key
+    final apiKey = AppConstants.googleMapsApiKey;
     final url =
         'https://roads.googleapis.com/v1/snapToRoads?path=${point.latitude},${point.longitude}&key=$apiKey';
     try {
@@ -344,7 +349,7 @@ class HomeScreenState extends State<HomeScreen> {
         }
       }
     } catch (e) {
-      LoggerService.error('HTTP request to Roads API failed', e);
+      print('HTTP request to Roads API failed: $e');
     }
     // If snapping fails, return the original point
     return point;
@@ -355,12 +360,12 @@ class HomeScreenState extends State<HomeScreen> {
     final userLatLng = LatLng(userLocation!.latitude, userLocation!.longitude);
     LatLng nearest = _findNearestPointOnPolyline(userLatLng, busLine.polyline);
     final destination = await _snapToRoad(nearest);
-    LoggerService.debug('Snapped destination: ${destination.latitude}, ${destination.longitude}');
+    print('Snapped destination: ${destination.latitude}, ${destination.longitude}');
 
     try {
       final directionsPolyline = await _getDirectionsPolyline(userLatLng, destination);
-      LoggerService.debug('Directions polyline points count: ${directionsPolyline.length}');
-      LoggerService.debug('Directions polyline points: ${directionsPolyline.map((p) => '[${p.latitude}, ${p.longitude}]').join(', ')}');
+      print('Directions polyline points count: ${directionsPolyline.length}');
+      print('Directions polyline points: ${directionsPolyline.map((p) => '[${p.latitude}, ${p.longitude}]').join(', ')}');
       setState(() {
         busPolylines = {
           Polyline(
@@ -383,7 +388,7 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         };
         if (directionsPolyline.isEmpty) {
-          LoggerService.warning('Directions polyline is empty');
+          print('Warning: directionsPolyline is empty!');
           if (mounted && !_isDisposed) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('لم يتم العثور على مسار بين موقعك وخط الباص')),
@@ -398,15 +403,15 @@ class HomeScreenState extends State<HomeScreen> {
           final bounds = _boundsFromLatLngList(directionsPolyline);
           await _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
         } catch (e) {
-          LoggerService.error('Camera bounds animation failed', e);
+          print('Camera bounds animation failed: $e. Moving to first point.');
           await _mapController!.animateCamera(CameraUpdate.newLatLng(directionsPolyline.first));
         }
       }
     } catch (e) {
-      LoggerService.error('Directions API error', e);
+      print('Directions API error: $e');
       if (mounted && !_isDisposed) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر جلب الاتجاهات. يرجى المحاولة مرة أخرى')),
+          SnackBar(content: Text('تعذر جلب الاتجاهات: $e')),
         );
       }
     }

@@ -17,6 +17,7 @@ class ContactUsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final yellow = const Color(0xFFFFC107);
+    final green = const Color(0xFF4CAF50);
 
     return Directionality(
       textDirection: TextDirection.rtl,

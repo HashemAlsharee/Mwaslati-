@@ -6,38 +6,6 @@ plugins {
     id 'com.google.gms.google-services'
 }
 
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
-        localProperties.load(reader)
-    }
-}
-
-def flutterRoot = localProperties.getProperty('flutter.sdk')
-if (flutterRoot == null) {
-    throw new RuntimeException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
-}
-
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-if (flutterVersionCode == null) {
-    flutterVersionCode = '1'
-}
-
-def flutterVersionName = localProperties.getProperty('flutter.versionName')
-if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
-}
-
-// Load environment variables
-def envFile = new File(rootProject.projectDir, '../.env')
-def envProperties = new Properties()
-if (envFile.exists()) {
-    envFile.withReader('UTF-8') { reader ->
-        envProperties.load(reader)
-    }
-}
-
 android {
     namespace = "com.hashem.yemenbus"
     compileSdk = flutter.compileSdkVersion
@@ -65,12 +33,6 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        
-        // Set Google Maps API key from environment
-        manifestPlaceholders = [
-            GOOGLE_MAPS_API_KEY: envProperties.getProperty('GOOGLE_MAPS_API_KEY', ''),
-            applicationName: "androidx.multidex.MultiDexApplication"
-        ]
     }
 
     buildTypes {
