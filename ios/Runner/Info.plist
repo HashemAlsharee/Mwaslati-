@@ -49,5 +49,12 @@
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
+		<!-- Location Permission Descriptions -->
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>يحتاج التطبيق إلى موقعك لتحديد أقرب خطوط الباص لك وعرض المسارات المثلى.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>يحتاج التطبيق إلى موقعك لتحديد أقرب خطوط الباص لك وعرض المسارات المثلى.</string>
+		<key>NSLocationAlwaysUsageDescription</key>
+		<string>يحتاج التطبيق إلى موقعك لتحديد أقرب خطوط الباص لك وعرض المسارات المثلى.</string>
 	</dict>
 </plist>

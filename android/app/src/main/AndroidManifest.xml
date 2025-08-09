@@ -9,9 +9,10 @@
         android:label="مواصلاتي"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+      <!-- Google Maps API Key will be loaded from environment variables -->
       <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCxy0b-BsXcBJNoZ7xjERUXar-OIWlNWZA" />
+            android:value="${GOOGLE_MAPS_API_KEY}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -147,6 +147,8 @@ class MapsService {
     return geoPoints.map((point) {
       if (point is GeoPoint) {
         return LatLng(point.latitude, point.longitude);
+      } else if (point is Map<String, dynamic>) {
+        return LatLng(point['latitude'], point['longitude']);
       }
       return const LatLng(0, 0);
     }).toList();

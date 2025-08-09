@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'features/connectivity/connectivity_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'core/providers/theme_provider.dart';
@@ -14,28 +15,15 @@ void main() async {
   // Load environment variables first
   try {
     await dotenv.load(fileName: ".env");
-    print('✅ Environment variables loaded successfully');
     
     // Verify the API key was loaded
     final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'];
-    if (apiKey != null && apiKey.isNotEmpty) {
-      print('🔑 API Key loaded: ${apiKey.substring(0, 10)}...');
-    } else {
+    if (apiKey == null || apiKey.isEmpty) {
       throw Exception('GOOGLE_MAPS_API_KEY is empty or missing in .env file');
     }
   } catch (e) {
-    print('❌ CRITICAL ERROR: Could not load .env file: $e');
-    print('''
-🔧 Troubleshooting Steps:
-1. Check if .env file exists in project root
-2. Verify .env file contains: GOOGLE_MAPS_API_KEY=your_api_key_here
-3. Ensure .env is included in pubspec.yaml assets section
-4. Run: flutter clean && flutter pub get
-5. Restart the app
-
-The app will now throw an error instead of using outdated fallback keys.
-''');
-    // Don't continue - let the error propagate
+    // Log error to Crashlytics instead of print
+    FirebaseCrashlytics.instance.recordError(e, StackTrace.current, reason: 'Failed to load environment variables');
     rethrow;
   }
   
@@ -44,8 +32,11 @@ The app will now throw an error instead of using outdated fallback keys.
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    // Initialize Crashlytics
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   } catch (e) {
-    print('⚠️ Firebase initialization failed: $e');
+    // Log error to console if Crashlytics is not available
+    debugPrint('⚠️ Firebase initialization failed: $e');
     // Still run the app even if Firebase fails
   }
 

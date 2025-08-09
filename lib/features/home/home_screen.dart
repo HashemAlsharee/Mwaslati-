@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../../core/widgets/map_widget.dart';
 import '../../core/services/maps_service.dart';
 import '../../core/services/firestore_service.dart';
@@ -115,11 +116,17 @@ class HomeScreenState extends State<HomeScreen> {
       });
 
     } catch (e) {
-      print('Error in _initializeLocationAndData: $e');
+      // Log error to Crashlytics instead of print
+      try {
+        FirebaseCrashlytics.instance.recordError(e, StackTrace.current, reason: 'Error in _initializeLocationAndData');
+      } catch (_) {
+        // Fallback to debug print if Crashlytics is not available
+        debugPrint('Error in _initializeLocationAndData: $e');
+      }
       if (!mounted || _isDisposed) return;
       setState(() {
         isLoading = false;
-        errorMessage = "حدث خطأ أثناء تحميل البيانات: $e";
+        errorMessage = "حدث خطأ أثناء تحميل البيانات";
       });
     }
   }
@@ -239,9 +246,6 @@ class HomeScreenState extends State<HomeScreen> {
 
   Future<List<LatLng>> _getDirectionsPolyline(LatLng origin, LatLng destination) async {
     final apiKey = AppConstants.googleMapsApiKey;
-    print('🔑 Using API Key: ${apiKey.substring(0, 10)}...');
-    print('Origin: ${origin.latitude}, ${origin.longitude}');
-    print('Destination: ${destination.latitude}, ${destination.longitude}');
     String mode = 'driving';
     var url =
         'https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&mode=$mode&key=$apiKey';
@@ -251,10 +255,8 @@ class HomeScreenState extends State<HomeScreen> {
         final data = json.decode(response.body);
         if (data['routes'] != null && data['routes'].isNotEmpty) {
           final points = data['routes'][0]['overview_polyline']['points'];
-          print('Raw polyline points string: $points');
           return _decodePolyline(points);
         } else {
-          print('No routes found for driving. Trying walking mode...');
           // Try walking mode as fallback
           mode = 'walking';
           url =
@@ -264,27 +266,24 @@ class HomeScreenState extends State<HomeScreen> {
             final data = json.decode(response.body);
             if (data['routes'] != null && data['routes'].isNotEmpty) {
               final points = data['routes'][0]['overview_polyline']['points'];
-              print('Raw polyline points string: $points');
               return _decodePolyline(points);
             } else {
-              print('No routes found for walking either. Full API response:');
-              print(response.body);
               throw Exception('No routes found (driving or walking)');
             }
           } else {
-            print('Failed to fetch directions (walking). Response:');
-            print(response.body);
             throw Exception('Failed to fetch directions (walking)');
           }
         }
       } else {
-        print('Failed to fetch directions (driving). Response:');
-        print(response.body);
         throw Exception('Failed to fetch directions (driving)');
       }
     } catch (e) {
-      print('❌ HTTP request to Directions API failed: $e');
-      print('🔗 URL was: $url');
+      // Log error to Crashlytics
+      try {
+        FirebaseCrashlytics.instance.recordError(e, StackTrace.current, reason: 'Directions API request failed');
+      } catch (_) {
+        debugPrint('Directions API request failed: $e');
+      }
       throw Exception('HTTP request to Directions API failed: $e');
     }
   }
@@ -349,7 +348,12 @@ class HomeScreenState extends State<HomeScreen> {
         }
       }
     } catch (e) {
-      print('HTTP request to Roads API failed: $e');
+      // Log error to Crashlytics
+      try {
+        FirebaseCrashlytics.instance.recordError(e, StackTrace.current, reason: 'Roads API request failed');
+      } catch (_) {
+        debugPrint('HTTP request to Roads API failed: $e');
+      }
     }
     // If snapping fails, return the original point
     return point;
@@ -360,12 +364,9 @@ class HomeScreenState extends State<HomeScreen> {
     final userLatLng = LatLng(userLocation!.latitude, userLocation!.longitude);
     LatLng nearest = _findNearestPointOnPolyline(userLatLng, busLine.polyline);
     final destination = await _snapToRoad(nearest);
-    print('Snapped destination: ${destination.latitude}, ${destination.longitude}');
 
     try {
       final directionsPolyline = await _getDirectionsPolyline(userLatLng, destination);
-      print('Directions polyline points count: ${directionsPolyline.length}');
-      print('Directions polyline points: ${directionsPolyline.map((p) => '[${p.latitude}, ${p.longitude}]').join(', ')}');
       setState(() {
         busPolylines = {
           Polyline(
@@ -388,7 +389,6 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         };
         if (directionsPolyline.isEmpty) {
-          print('Warning: directionsPolyline is empty!');
           if (mounted && !_isDisposed) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('لم يتم العثور على مسار بين موقعك وخط الباص')),
@@ -403,15 +403,20 @@ class HomeScreenState extends State<HomeScreen> {
           final bounds = _boundsFromLatLngList(directionsPolyline);
           await _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
         } catch (e) {
-          print('Camera bounds animation failed: $e. Moving to first point.');
+          debugPrint('Camera bounds animation failed: $e. Moving to first point.');
           await _mapController!.animateCamera(CameraUpdate.newLatLng(directionsPolyline.first));
         }
       }
     } catch (e) {
-      print('Directions API error: $e');
+      // Log error to Crashlytics
+      try {
+        FirebaseCrashlytics.instance.recordError(e, StackTrace.current, reason: 'Directions API error');
+      } catch (_) {
+        debugPrint('Directions API error: $e');
+      }
       if (mounted && !_isDisposed) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر جلب الاتجاهات: $e')),
+          const SnackBar(content: Text('تعذر جلب الاتجاهات')),
         );
       }
     }
@@ -478,36 +483,48 @@ class HomeScreenState extends State<HomeScreen> {
                         Text(
                           errorMessage!,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.black87, // Improved contrast
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const SizedBox(height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             Expanded(
-                              child: ElevatedButton(
-                                onPressed: _initializeLocationAndData,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFFC107),
-                                  foregroundColor: Colors.black,
+                              child: Semantics(
+                                label: 'إعادة المحاولة',
+                                hint: 'إعادة تحميل البيانات والمحاولة مرة أخرى',
+                                child: ElevatedButton(
+                                  onPressed: _initializeLocationAndData,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFFC107),
+                                    foregroundColor: Colors.black,
+                                  ),
+                                  child: const Text('إعادة المحاولة'),
                                 ),
-                                child: const Text('إعادة المحاولة'),
                               ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  if (!mounted || _isDisposed) return;
-                                  setState(() {
-                                    errorMessage = null;
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[300],
-                                  foregroundColor: Colors.black,
+                              child: Semantics(
+                                label: 'إغلاق',
+                                hint: 'إغلاق رسالة الخطأ',
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    if (!mounted || _isDisposed) return;
+                                    setState(() {
+                                      errorMessage = null;
+                                    });
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey[300],
+                                    foregroundColor: Colors.black,
+                                  ),
+                                  child: const Text('إغلاق'),
                                 ),
-                                child: const Text('إغلاق'),
                               ),
                             ),
                           ],
@@ -571,13 +588,17 @@ class HomeScreenState extends State<HomeScreen> {
                                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                             child: Row(
                                               children: [
-                                                IconButton(
-                                                  icon: Icon(
-                                                    isFavorite ? Icons.favorite : Icons.favorite_border,
-                                                      color: color,
-                                                    size: 30,
+                                                Semantics(
+                                                  label: isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة',
+                                                  hint: 'إضافة أو إزالة خط الباص من قائمة المفضلة',
+                                                  child: IconButton(
+                                                    icon: Icon(
+                                                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                                                        color: color,
+                                                      size: 30,
+                                                    ),
+                                                    onPressed: () => toggleFavorite(index),
                                                   ),
-                                                  onPressed: () => toggleFavorite(index),
                                                 ),
                                                 const SizedBox(width: 8),
                                                 Expanded(
@@ -615,18 +636,22 @@ class HomeScreenState extends State<HomeScreen> {
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             child: SizedBox(
                                               width: double.infinity,
-                                              child: ElevatedButton.icon(
-                                                icon: const Icon(Icons.map),
-                                                label: const Text('عرض في الخريطة', style: TextStyle(fontWeight: FontWeight.bold)),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: color,
-                                                  foregroundColor: Colors.white,
-                                                  elevation: 0,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(10),
+                                              child: Semantics(
+                                                label: 'عرض في الخريطة',
+                                                hint: 'عرض مسار الوصول إلى خط الباص على الخريطة',
+                                                child: ElevatedButton.icon(
+                                                  icon: const Icon(Icons.map),
+                                                  label: const Text('عرض في الخريطة', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: color,
+                                                    foregroundColor: Colors.white,
+                                                    elevation: 0,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(10),
+                                                    ),
                                                   ),
+                                                  onPressed: () => _showDirectionsOnMap(busLine),
                                                 ),
-                                                onPressed: () => _showDirectionsOnMap(busLine),
                                               ),
                                             ),
                                           ),
@@ -636,46 +661,54 @@ class HomeScreenState extends State<HomeScreen> {
                                             child: Row(
                                               children: [
                                                 Expanded(
-                                                  child: ElevatedButton(
-                                                    style: ElevatedButton.styleFrom(
-                                                        backgroundColor: direction == 'go' ? color : Colors.white,
-                                                        foregroundColor: direction == 'go' ? Colors.white : color,
-                                                      elevation: 0,
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.circular(10),
-                                                          side: BorderSide(color: color),
-                                                        ),
+                                                  child: Semantics(
+                                                    label: 'اتجاه الذهاب',
+                                                    hint: 'عرض محطات خط الباص في اتجاه الذهاب',
+                                                    child: ElevatedButton(
+                                                      style: ElevatedButton.styleFrom(
+                                                          backgroundColor: direction == 'go' ? color : Colors.white,
+                                                          foregroundColor: direction == 'go' ? Colors.white : color,
+                                                        elevation: 0,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(10),
+                                                            side: BorderSide(color: color),
+                                                          ),
+                                                      ),
+                                                      onPressed: () {
+                                                        if (!mounted || _isDisposed) return;
+                                                        setState(() {
+                                                          expandedIndex = index;
+                                                          selectedDirection[index] = 'go';
+                                                        });
+                                                      },
+                                                      child: const Text('ذهاب', style: TextStyle(fontWeight: FontWeight.bold)),
                                                     ),
-                                                    onPressed: () {
-                                                      if (!mounted || _isDisposed) return;
-                                                      setState(() {
-                                                        expandedIndex = index;
-                                                        selectedDirection[index] = 'go';
-                                                      });
-                                                    },
-                                                    child: const Text('ذهاب', style: TextStyle(fontWeight: FontWeight.bold)),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 8),
                                                 Expanded(
-                                                  child: ElevatedButton(
-                                                    style: ElevatedButton.styleFrom(
-                                                        backgroundColor: direction == 'back' ? color : Colors.white,
+                                                  child: Semantics(
+                                                    label: 'اتجاه العودة',
+                                                    hint: 'عرض محطات خط الباص في اتجاه العودة',
+                                                    child: ElevatedButton(
+                                                      style: ElevatedButton.styleFrom(
+                                                          backgroundColor: direction == 'back' ? color : Colors.white,
                                                         foregroundColor: direction == 'back' ? Colors.white : color,
-                                                      elevation: 0,
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius: BorderRadius.circular(10),
-                                                          side: BorderSide(color: color),
-                                                        ),
+                                                        elevation: 0,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(10),
+                                                            side: BorderSide(color: color),
+                                                          ),
+                                                      ),
+                                                      onPressed: () {
+                                                        if (!mounted || _isDisposed) return;
+                                                        setState(() {
+                                                          expandedIndex = index;
+                                                          selectedDirection[index] = 'back';
+                                                        });
+                                                      },
+                                                      child: const Text('عودة', style: TextStyle(fontWeight: FontWeight.bold)),
                                                     ),
-                                                    onPressed: () {
-                                                      if (!mounted || _isDisposed) return;
-                                                      setState(() {
-                                                        expandedIndex = index;
-                                                        selectedDirection[index] = 'back';
-                                                      });
-                                                    },
-                                                    child: const Text('عودة', style: TextStyle(fontWeight: FontWeight.bold)),
                                                   ),
                                                 ),
                                               ],

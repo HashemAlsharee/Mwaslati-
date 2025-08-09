@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local properties file (contains API keys and SDK paths)
+android/local.properties

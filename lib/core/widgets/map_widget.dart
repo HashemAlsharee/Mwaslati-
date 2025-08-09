@@ -105,15 +105,10 @@ class _BusMapWidgetState extends State<BusMapWidget> {
       );
     }
 
-    // Debug print for polylines
-    print('BusMapWidget polylines count: ${widget.polylines?.length ?? 0}');
-    if (widget.polylines != null) {
-      for (final poly in widget.polylines!) {
-        print('Polyline: id=${poly.polylineId.value}, points=${poly.points.length}');
-      }
-    }
-
-    return GoogleMap(
+    return Semantics(
+      label: 'خريطة خطوط الباص',
+      hint: 'خريطة تفاعلية لعرض خطوط الباص والمحطات',
+      child: GoogleMap(
       initialCameraPosition: _getInitialCameraPosition(),
       onMapCreated: (GoogleMapController controller) {
         _mapController = controller;
@@ -142,6 +137,7 @@ class _BusMapWidgetState extends State<BusMapWidget> {
       zoomControlsEnabled: false,
       mapToolbarEnabled: false,
       compassEnabled: true,
+      ),
     );
   }
 

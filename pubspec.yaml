@@ -37,14 +37,15 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
-  google_maps_flutter: ^2.5.0
-  geolocator: ^11.0.0 # لتحديد الموقع
+  google_maps_flutter: ^2.5.3
+  geolocator: ^11.0.2 # لتحديد الموقع
   flutter_polyline_points: ^2.0.0 # لرسم المسارات
   cloud_firestore: ^4.15.5 # للوصول إلى Firestore
   connectivity_plus: ^5.0.2
   flutter_svg: ^2.0.10
   http: ^1.1.0
   firebase_core: ^2.32.0
+  firebase_crashlytics: ^3.4.19
   url_launcher: ^6.2.5
   provider: ^6.1.2
   shared_preferences: ^2.2.2
@@ -52,6 +53,8 @@ dependencies:
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to

@@ -7,15 +7,62 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:busui/main.dart';
+import 'package:provider/provider.dart';
+import 'package:busui/core/providers/theme_provider.dart';
 
 void main() {
-  testWidgets('App loads successfully', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('BusUI Widget Tests', () {
+    testWidgets('App launches successfully', (WidgetTester tester) async {
+      // Build our app and trigger a frame.
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
+          child: const MyApp(),
+        ),
+      );
 
-    // Verify that the app loads without crashing
-    expect(find.byType(MaterialApp), findsOneWidget);
+      // Verify that the app launches without errors
+      expect(find.byType(MaterialApp), findsOneWidget);
+    });
+
+    testWidgets('Theme provider works correctly', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
+          child: const MyApp(),
+        ),
+      );
+
+      // Verify theme provider is available
+      expect(find.byType(ChangeNotifierProvider<ThemeProvider>), findsOneWidget);
+    });
+
+    testWidgets('App has proper localization setup', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
+          child: const MyApp(),
+        ),
+      );
+
+      // Verify localization delegates are present
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(materialApp.localizationsDelegates, isNotNull);
+      expect(materialApp.supportedLocales, isNotNull);
+    });
+
+    testWidgets('App supports RTL text direction', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
+          child: const MyApp(),
+        ),
+      );
+
+      // Verify RTL support
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(materialApp.supportedLocales, contains(const Locale('ar')));
+    });
   });
 }
