@@ -141,7 +141,7 @@ flutter run
 
 ## 👨‍💻 المطور
 
-**هاشم علي الشرعي** — [HashemAlsharee](https://github.com/HashemAlsharee)
+**هاشم عصام الشرعي** — [HashemAlsharee](https://github.com/HashemAlsharee)
 
 ## 📄 الترخيص
 
