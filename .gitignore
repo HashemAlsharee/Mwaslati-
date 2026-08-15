@@ -46,3 +46,6 @@ app.*.map.json
 
 # Local properties file (contains API keys and SDK paths)
 android/local.properties
+
+# Environment secrets
+.env
