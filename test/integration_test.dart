@@ -22,7 +22,7 @@ void main() {
               Locale('en'),
             ],
             locale: Locale('ar'),
-            localizationsDelegates: const [
+            localizationsDelegates: [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
@@ -47,7 +47,8 @@ void main() {
       );
 
       // Verify theme provider is available
-      expect(find.byType(ChangeNotifierProvider<ThemeProvider>), findsOneWidget);
+      expect(
+          find.byType(ChangeNotifierProvider<ThemeProvider>), findsOneWidget);
     });
 
     testWidgets('Localization is properly configured', (tester) async {
@@ -61,7 +62,7 @@ void main() {
               Locale('en'),
             ],
             locale: Locale('ar'),
-            localizationsDelegates: const [
+            localizationsDelegates: [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
@@ -77,4 +78,4 @@ void main() {
       expect(materialApp.supportedLocales, contains(const Locale('ar')));
     });
   });
-} 
+}
